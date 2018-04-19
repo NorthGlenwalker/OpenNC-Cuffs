@@ -760,9 +760,9 @@ default
     touch_start(integer nCnt)
     {
         key id = llDetectedKey(0);
-        if ((llGetAttached() == 0)&& (id==g_keyWearer)) // If not attached then wake up update script then do nothing
+        if ((llGetAttached() == 0) && (id == g_keyWearer)) // If not attached then wake up update script then do nothing
         {
-            llSetScriptState("OpenNC - update",TRUE);
+            llSetScriptState("occ - update",TRUE);
             return;
         }
         else if (llDetectedKey(0) == llGetOwner())// if we are wearer then allow to resize
