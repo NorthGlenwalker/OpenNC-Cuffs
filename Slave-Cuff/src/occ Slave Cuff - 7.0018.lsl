@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////
 // ------------------------------------------------------------------------------ //
-//                              OpenNC - Slave Cuff                               //
-//                                 version 7.0016                                 //
+//                                occ - Slave Cuff                                //
+//                                 version 7.0018                                 //
 // ------------------------------------------------------------------------------ //
 // Licensed under the GPLv2 with additional requirements specific to Second Life® //
 // and other virtual metaverse environments.                                      //
@@ -14,7 +14,7 @@
 ////////////////////////////////////////////////////////////////////////////////////
 
 // change here for OS and IW grids
-key lgkTexture = "245ea72d-bc79-fee3-a802-8e73c0f09473"; //Default chain texture for LG/LM
+key lgkTexture = "245ea72d-bc79-fee3-a802-8e73c0f09473"; //Default chain texture for LG/LM needs seperate key as this texture can be changed by furniture command string.
 key kTexture = "245ea72d-bc79-fee3-a802-8e73c0f09473"; //Default chain texture Chainit
 // Do not change anything behond here
 
@@ -148,14 +148,11 @@ integer         lglmHandle;
 string          lmAttachmentpoint = "rlcuff"; // will be read on int from the Object Name
 integer         nChannel = -9119;
 integer         lgHandle;
-string          fnLNCFilename = "LockGuard V2 Config";
-string          fnLNCFileData;
-list            fnLNCFileDataList;
-integer         fnLNCLine;
-key             fnLNCQueryID;
 list            lglCommandLine;
 integer         lgParserCount;
-list            LGNames = ["rcuff","lcuff","lbiceps","rbiceps","ltigh","rtigh","llcuff","llcuff","lbelt"];
+list            LGNames = ["rcuff","lcuff","lbiceps","rbiceps","ltigh","rtigh","llcuff","lrcuff","lbelt"];
+list            LGID1   = ["rightwrist","leftwrist","leftupperarm","rightupperarm","leftupperthigh","rightupperthigh","leftankle","rightankle","frontbeltloop"];
+list            LGID2   = ["wrists","wrists","arms","arms","thighs","thighs","ankles","ankles"," "];
 list            LGOurParts; //strided list of part,link number
 list            lLockGuardCommands = [ "id", "link", "unlink", "ping", "free", "texture"];
 list            lglLockGuardID;
@@ -206,7 +203,8 @@ FindParts()
     for (n = 2; n <= linkcount; n++) //start at 2 as root is 1
     {
         string getname =  llGetLinkName(n); // get Name of ocAttachmentPoint from prims
-        if(llListFindList(LGNames,[getname]) != -1 )//find any LG prims and record the prim number
+        integer m = llListFindList(LGNames,[getname]);
+        if( m != -1 )//find any LG prims and record the prim number
         {
             LGOurParts += [getname,n]; //just add our attach point names
             lmAttachmentpoint = getname;
@@ -442,11 +440,6 @@ SetLocking()
             g_nLockedState=FALSE;
         llOwnerSay("@detach=y");
     }
-}
-
-string GetCuffName()
-{
-    return llList2String(lstCuffNames,llGetAttached());
 }
 
 string szStripSpaces (string szStr)
@@ -694,7 +687,8 @@ string ElementType(integer linkiNumber)
 }
 
 Init()
-{   
+{
+    if (scanLinkset()){ } // resizer script ready;
     g_keyWearer = llGetOwner();
     // get unique channel numbers for the command and cuff channel, cuff channel wil be used for LG chains of cuffs as well
     g_nCmdChannel = nGetOwnerChannel(g_nCmdChannelOffset);
@@ -703,7 +697,7 @@ Init()
     g_nCmdHandle = llListen(g_nInternalLockGuardChannel, "", NULL_KEY, "");
     g_lstModTokens = (list)llList2String(lstCuffNames,llGetAttached()); // get name of the cuff from the attachment point, this is absolutly needed for the system to work, other chain point wil be received via LMs
 
-    g_szModToken=GetCuffName();
+    g_szModToken=llList2String(lstCuffNames,llGetAttached());
     BuildTextureList(); //build list of parts we can texture
     BuildColorElementList(); //built list of parts we can color
     // listen to LockGuard requests
@@ -725,17 +719,14 @@ Init()
         if(llListFindList(llChainItID, [getname]) != -1)//find the chaining point prim we need
             llLinkParticleSystem(n, [] );//clear any chain particles
     }
+    FindParts();
 }
 
 default
 {
     state_entry()
     {
-        Init();
-        if (scanLinkset()){ } // llOwnerSay("resizer script ready"); 
-        fnLNCLine = 0;
-        fnLNCQueryID = llGetNotecardLine( fnLNCFilename, fnLNCLine );
-        lglmHandle = llListen( lmChannel, "", NULL_KEY, (string)llGetOwner() + lmAttachmentpoint);
+        Init(); 
     }
 
     on_rez(integer param)
@@ -760,9 +751,9 @@ default
     touch_start(integer nCnt)
     {
         key id = llDetectedKey(0);
-        if ((llGetAttached() == 0) && (id == g_keyWearer)) // If not attached then wake up update script then do nothing
+        if ((llGetAttached() == 0)&& (id==g_keyWearer)) // If not attached then wake up update script then do nothing
         {
-            llSetScriptState("occ - update",TRUE);
+            llSetScriptState("OpenNC - update",TRUE);
             return;
         }
         else if (llDetectedKey(0) == llGetOwner())// if we are wearer then allow to resize
@@ -827,36 +818,6 @@ default
                     cur_scale = min_scale;
                 resizeObject(cur_scale);
                 makeMenu();
-            }
-        }
-    }
-    
-    dataserver( key query_id, string data )
-    {
-        integer i;
-        if( query_id == fnLNCQueryID )
-        {
-            if( data != EOF )
-            {
-                if( fnLNCLine > 0 )
-                    fnLNCFileData += " ";
-                else
-                    fnLNCFileDataList = [];
-                fnLNCFileDataList += [ data ];
-                fnLNCLine++;
-                fnLNCQueryID = llGetNotecardLine( fnLNCFilename, fnLNCLine );
-            }
-            else
-            {
-                do
-                {
-                    lCommandLine = llParseString2List( llToLower( llList2String( fnLNCFileDataList, i ) ), [ " " ], [] );
-                    llLockGuardObey( 0 );
-                    i++;
-                }
-                while( i < llGetListLength( fnLNCFileDataList ) )
-                    ;
-                fnLNCFileDataList = [];
             }
         }
     }
