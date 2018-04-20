@@ -1,5 +1,5 @@
 ID options - leftankle, rightankle, leftwrist, rightwrist, rightupperarm, leftupperarm, rightupperthigh, leftupperthigh, backbeltloop, frontbeltloop, rightbeltloop, leftbeltloop
-ID options - ankles, wrists, arms, thighs
+ID options - ankles, wrists, arms, thighs, not used on belt
 ID allfour - relates to ankle and wrists only
 /////// copy below this line into a seperate notecard in each cuff root prim changing the top lines as required ///////
 
